@@ -1,5 +1,7 @@
 # VrmAiFriend Config
 
+**Version V0.1.0**
+
 VRM AI Friend 用のキャラクター設定ツール。Web UI で性格パラメータを編集し、システムプロンプトを生成・保存します。
 
 ## 機能
@@ -62,3 +64,8 @@ pip install -r requirements-build.txt
 [GNU General Public License v3.0](LICENSE)（GPL-3.0）
 
 このソフトウェアを改変・配布する場合、GPL-3.0 の条件に従いソースコードを公開する必要があります。
+
+## リリース情報
+
+- [V0.1.0 リリースノート](RELEASE_v0.1.0.md)
+- [変更履歴](CHANGELOG.md)
