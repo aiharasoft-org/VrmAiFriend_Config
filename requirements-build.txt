@@ -1,0 +1,4 @@
+# PyInstaller で .app をビルドするときのみ使用
+-r requirements.txt
+pyinstaller>=6.7
+setuptools<81
