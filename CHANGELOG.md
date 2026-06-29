@@ -8,3 +8,4 @@
 - Gemini API によるシステムプロンプト自動生成
 - 設定の永続化（`~/.config/VrmAiFriend/`）
 - macOS 向け `.app` / `.dmg` ビルド対応
+

@@ -1,28 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
-# VrmAiFriend 設定 UI（config.py）を macOS .app にビルドする PyInstaller 設定。
+# VrmAiFriend 設定 UI を macOS .app にビルドする PyInstaller 設定。
+#
+# 構成:
+#   VrmAiFriendConfig        … 即終了するランチャー（.app の本体）
+#   VrmAiFriendConfigServer  … バックグラウンド Gradio サーバー
 #
 # ビルド手順:
 #   pip install -r requirements-build.txt
 #   ./build_mac.sh
-#   または:
-#     ./scripts/build_icon.sh
-#     pyinstaller config.spec
-#     ./scripts/build_dmg.sh
-#
-# アイコン:
-#   VrmAiFriend_Config.png から VrmAiFriend_Config.icns を生成して .app / DMG に使用する。
-#
-# 注意:
-#   setuptools 82 以降は pkg_resources が同梱されず PyInstaller が失敗するため、
-#   requirements-build.txt では setuptools<81 を指定している。
-#
-# 出力:
-#   dist/VrmAiFriendConfig.app
-#   dist/VrmAiFriendConfig-Installer.dmg
-#
-# Unity からの起動例（macOS）:
-#   open -a "/path/to/dist/VrmAiFriendConfig.app"
 
+from PyInstaller.building.build_main import Analysis, COLLECT, EXE, MERGE, PYZ, BUNDLE
 from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 from pathlib import Path
@@ -31,9 +18,9 @@ ICON_FILE = str(Path(SPECPATH) / "VrmAiFriend_Config.icns")
 
 block_cipher = None
 
-datas = []
-binaries = []
-hiddenimports = collect_submodules("gradio") + [
+server_datas = []
+server_binaries = []
+server_hiddenimports = collect_submodules("gradio") + [
     "yaml",
     "dotenv",
     "google",
@@ -49,23 +36,24 @@ hiddenimports = collect_submodules("gradio") + [
     "PIL",
     "PIL.Image",
     "groovy",
+    "app_instance",
+    "config",
 ]
 
-# Gradio 周辺は静的ファイル欠落で起動失敗しやすいため明示的に収集する
 for package_name in ("gradio", "gradio_client", "safehttpx", "groovy"):
     pkg_datas, pkg_binaries, pkg_hiddenimports = collect_all(package_name)
-    datas += pkg_datas
-    binaries += pkg_binaries
-    hiddenimports += pkg_hiddenimports
+    server_datas += pkg_datas
+    server_binaries += pkg_binaries
+    server_hiddenimports += pkg_hiddenimports
 
-hiddenimports = list(dict.fromkeys(hiddenimports))
+server_hiddenimports = list(dict.fromkeys(server_hiddenimports))
 
-a = Analysis(
-    ["config.py"],
+launcher_a = Analysis(
+    ["launcher.py"],
     pathex=[],
-    binaries=binaries,
-    datas=datas,
-    hiddenimports=hiddenimports,
+    binaries=[],
+    datas=[],
+    hiddenimports=["app_instance"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -74,11 +62,28 @@ a = Analysis(
     noarchive=False,
 )
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+server_a = Analysis(
+    ["server.py"],
+    pathex=[],
+    binaries=server_binaries,
+    datas=server_datas,
+    hiddenimports=server_hiddenimports,
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[],
+    cipher=block_cipher,
+    noarchive=False,
+)
 
-exe = EXE(
-    pyz,
-    a.scripts,
+MERGE((server_a, "server", "server"), (launcher_a, "launcher", "launcher"))
+
+launcher_pyz = PYZ(launcher_a.pure, launcher_a.zipped_data, cipher=block_cipher)
+server_pyz = PYZ(server_a.pure, server_a.zipped_data, cipher=block_cipher)
+
+launcher_exe = EXE(
+    launcher_pyz,
+    launcher_a.scripts,
     [],
     exclude_binaries=True,
     name="VrmAiFriendConfig",
@@ -94,11 +99,30 @@ exe = EXE(
     entitlements_file=None,
 )
 
+server_exe = EXE(
+    server_pyz,
+    server_a.scripts,
+    [],
+    exclude_binaries=True,
+    name="VrmAiFriendConfigServer",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+)
+
 coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
+    launcher_exe,
+    server_exe,
+    server_a.binaries,
+    server_a.zipfiles,
+    server_a.datas,
     strip=False,
     upx=False,
     upx_exclude=[],

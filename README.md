@@ -35,8 +35,10 @@ GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 - 設定ファイルの場所: `~/.env`
-- API キーの取得: https://aistudio.google.com/apikey
+- API キーの取得: [https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 - `AIzaSy...` の部分は、ご自身の API キーに置き換えてください
+
+
 
 ## 起動
 
@@ -47,12 +49,26 @@ python config.py
 
 ブラウザで設定画面が開きます（`http://127.0.0.1:7860` 付近）。
 
+macOS の `.app` を起動した場合も同様に、バックグラウンドで Gradio サーバー（`VrmAiFriendConfigServer`）が立ち上がり、ブラウザが自動で開きます。
+
+### 再起動について
+
+すでにバックグラウンドサーバーが動いている状態でアプリ（または `python config.py`）を再度起動すると、**既存のサーバーを終了してから新しく起動**します。
+
+> **注意:** ブラウザ上で「設定を保存」していない編集内容は、再起動時に失われます。ディスクに保存済みの設定（`~/.config/VrmAiFriend/`）はそのまま読み込まれます。
+
+
+
 ## 設定の保存先
 
-| ファイル | 内容 |
-|----------|------|
-| `~/.config/VrmAiFriend/config.yaml` | 基本情報・性格パラメータ |
-| `~/.config/VrmAiFriend/system_instruction.txt` | システムプロンプト |
+
+| ファイル                                           | 内容           |
+| ---------------------------------------------- | ------------ |
+| `~/.config/VrmAiFriend/config.yaml`            | 基本情報・性格パラメータ |
+| `~/.config/VrmAiFriend/system_instruction.txt` | システムプロンプト    |
+
+
+
 
 ## macOS アプリのビルド（任意）
 
@@ -66,6 +82,8 @@ pip install -r requirements-build.txt
 - `dist/VrmAiFriendConfig.app`
 - `dist/VrmAiFriendConfig-Installer.dmg`
 
+
+
 ## ライセンス
 
 [GNU General Public License v3.0](LICENSE)（GPL-3.0）
@@ -76,3 +94,4 @@ pip install -r requirements-build.txt
 
 - [V0.1.0 リリースノート](RELEASE_v0.1.0.md)
 - [変更履歴](CHANGELOG.md)
+

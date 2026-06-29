@@ -16,21 +16,29 @@ AI 推論・プロセス再起動ロジックはここに持たない。
 
 設定の保存:
   「設定を保存」で system_instruction.txt と基本情報・性格パラメータ（config.yaml）を更新する。
+
+起動（.app / CLI 共通）:
+  launcher.py が既存の VrmAiFriendConfigServer を終了してから再起動する。
+  ポートだけ占有している応答不能なプロセスも起動前に終了させる。
 """
 
 import gradio as gr
 import os
 import copy
 import re
-import socket
 import time
-import threading
-import webbrowser
 from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
 from google import genai
+
+from app_instance import (
+    DEFAULT_PORT,
+    open_app_in_browser,
+    prepare_launch_port,
+    start_instance_socket_server,
+)
 
 CONFIG_DIR = Path.home() / ".config" / "VrmAiFriend"
 CONFIG_PATH = CONFIG_DIR / "config.yaml"
@@ -43,7 +51,7 @@ GEMINI_API_KEY_PATTERN = re.compile(
     r"""GEMINI_API_KEY\s*=\s*["']?([^"'#\s]+)""",
 )
 
-# 性格パラメータ定義: (キー, 表示名, 低い側の説明, 高い側の説明)
+# : (キー, 表示名, 低い側の説明, 高い側の説明)
 PERSONALITY_DEFINITIONS = [
     ("kindness", "やさしさ", "冷淡（厳格）", "慈愛（包容力）"),
     ("affection", "好感度", "嫌悪（無関心）", "親密（好意）"),
@@ -208,7 +216,8 @@ class CharacterConfig:
             except Exception as e:
                 print(f"設定読み込みエラー: {e}")
         if SYSTEM_INSTRUCTION_PATH.is_file():
-            settings["system_instruction"] = SYSTEM_INSTRUCTION_PATH.read_text(encoding="utf-8")
+            settings["system_instruction"] = SYSTEM_INSTRUCTION_PATH.read_text(
+                encoding="utf-8")
         return settings
 
     def save(self, user_name, ai_name, ai_gender, ai_age, other_instructions,
@@ -234,7 +243,8 @@ class CharacterConfig:
         })
         write_character_settings(self.settings)
         write_system_instruction(sys_inst)
-        return "設定を保存しました。"
+        # メッセージは、"設定を保存しました。VrmAiFriend を再起動してください。"とすること。
+        return "設定を保存しました。VrmAiFriend を再起動してください。"
 
     def reset(self):
         d = DEFAULT_SETTINGS
@@ -311,7 +321,8 @@ with gr.Blocks(title="VRM AI Friend 設定") as demo:
             ai_name_in = gr.Textbox(value=s["ai_name"], label="AI の名前")
         with gr.Column(scale=1):
             ai_gender_in = gr.Textbox(value=s["ai_gender"], label="AI の性別")
-            ai_age_in = gr.Number(value=s["ai_age"], label="AI の年齢", precision=0, minimum=1, maximum=999)
+            ai_age_in = gr.Number(
+                value=s["ai_age"], label="AI の年齢", precision=0, minimum=1, maximum=999)
     other_instructions_in = gr.Textbox(
         value=s["other_instructions"],
         label="その他指示（口調など）",
@@ -333,16 +344,19 @@ with gr.Blocks(title="VRM AI Friend 設定") as demo:
                 personality_sliders.append(slider)
 
     with gr.Row():
-        gen_btn = gr.Button("🔮 上記設定からシステム指示文を AI 自動生成", variant="secondary")
+        gen_btn = gr.Button("🔮 上記設定から自動生成", variant="secondary")
         save_btn = gr.Button("💾 設定を保存", variant="primary")
-        reset_btn = gr.Button("↩ デフォルトに戻す", variant="stop")
+        reset_btn = gr.Button("↩ 初期設定に戻す", variant="stop")
 
-    status_msg = gr.Markdown("💡 設定変更後「設定を保存」を押してください。AI は次回推論時から反映します。")
+    status_msg = gr.Markdown(
+        "💡 設定変更後「設定を保存」を押してください。VRM AI Friend は次回推論時から反映します。")
     gr.Markdown("---")
     gr.Markdown("### 📜 システムインストラクション")
-    instruction_in = gr.Textbox(value=s["system_instruction"], lines=15, label=None, interactive=True)
+    instruction_in = gr.Textbox(
+        value=s["system_instruction"], lines=15, label=None, interactive=True)
 
-    gen_inputs = [user_name_in, ai_name_in, ai_gender_in, ai_age_in, other_instructions_in, *personality_sliders]
+    gen_inputs = [user_name_in, ai_name_in, ai_gender_in,
+                  ai_age_in, other_instructions_in, *personality_sliders]
     save_inputs = [*gen_inputs, instruction_in]
     reset_outputs = [*gen_inputs, instruction_in, status_msg]
 
@@ -362,28 +376,10 @@ with gr.Blocks(title="VRM AI Friend 設定") as demo:
     )
 
 
-def find_available_port(start: int = DEFAULT_PORT, end: int = DEFAULT_PORT + 20) -> int:
-    """指定範囲で空いている TCP ポートを探す。"""
-    for port in range(start, end + 1):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            try:
-                sock.bind(("127.0.0.1", port))
-                return port
-            except OSError:
-                continue
-    raise OSError(f"ポート {start}-{end} に空きがありません。")
-
-
-def _open_browser(port: int):
-    time.sleep(1.5)
-    webbrowser.open(f"http://127.0.0.1:{port}")
-
-
-if __name__ == "__main__":
-    port = find_available_port()
-    if port != DEFAULT_PORT:
-        print(f"⚠ ポート {DEFAULT_PORT} は使用中のため {port} で起動します。")
-    threading.Thread(target=_open_browser, args=(port,), daemon=True).start()
+def run_server() -> None:
+    """バックグラウンド Gradio サーバーを起動する。"""
+    port = prepare_launch_port()
+    start_instance_socket_server(port)
     demo.launch(
         server_name="127.0.0.1",
         server_port=port,
@@ -391,3 +387,30 @@ if __name__ == "__main__":
         theme=blue_theme,
         footer_links=[],
     )
+
+
+def run_app() -> None:
+    """CLI 互換: ランチャーと同じくサーバーを別プロセスで起動する。"""
+    from app_instance import (
+        acquire_start_lock,
+        release_start_lock,
+        spawn_detached_server,
+        stop_running_server,
+        wait_for_server,
+    )
+
+    if not acquire_start_lock():
+        os._exit(0)
+
+    try:
+        stop_running_server(DEFAULT_PORT)
+        prepare_launch_port()
+        spawn_detached_server()
+        if wait_for_server(DEFAULT_PORT, timeout=90):
+            open_app_in_browser(DEFAULT_PORT)
+    finally:
+        release_start_lock()
+
+
+if __name__ == "__main__":
+    run_app()
