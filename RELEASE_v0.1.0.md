@@ -10,17 +10,18 @@ VRM AI Friend 用キャラクター設定ツールの初回リリースです。
 ## 同梱物（GitHub Release）
 
 
-| ファイル                              | 説明               |
-| --------------------------------- | ---------------- |
+| ファイル                          | 説明                       |
+| --------------------------------- | -------------------------- |
 | `VrmAiFriendConfig-Installer.dmg` | macOS インストーラ（推奨） |
-| ソースコード（zip）                       | 開発者向け            |
+| ソースコード（zip）               | 開発者向け                 |
 
 
 ## インストール（macOS）
 
 1. `VrmAiFriendConfig-Installer.dmg` をダブルクリック
 2. `VrmAiFriendConfig.app` を **Applications** にドラッグ
-3. アプリを起動
+3. ターミナルを開き、xattr -cr /Applications/VrmAiFriendConfig.app を実行する
+4. アプリを起動
 
 ## 起動の挙動
 
@@ -50,10 +51,10 @@ GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ## 設定の保存先
 
 
-| パス                                             | 内容           |
-| ---------------------------------------------- | ------------ |
+| パス                                           | 内容                     |
+| ---------------------------------------------- | ------------------------ |
 | `~/.config/VrmAiFriend/config.yaml`            | 基本情報・性格パラメータ |
-| `~/.config/VrmAiFriend/system_instruction.txt` | システムプロンプト    |
+| `~/.config/VrmAiFriend/system_instruction.txt` | システムプロンプト       |
 
 
 
