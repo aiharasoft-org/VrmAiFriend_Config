@@ -48,3 +48,6 @@ config.yaml
 .pypirc
 .streamlit/secrets.toml
 tempCodeRunnerFile.py
+
+# Security
+.vscode/
