@@ -9,3 +9,4 @@
 - 設定の永続化（`~/.config/VrmAiFriend/`）
 - macOS 向け `.app` / `.dmg` ビルド対応
 
+> **注記:** VrmAiFriend v0.6 で人格設定がメインアプリのメニューに統合されました。Config ツール自体に v0.6 向けの変更はありません。
